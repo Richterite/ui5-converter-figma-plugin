@@ -1,0 +1,7 @@
+.DS_Store
+.vscode/
+*.log
+*.css.d.ts
+/build/
+/manifest.json
+node_modules/
