@@ -1,4 +1,7 @@
-# React Editor
+# Fiori UI 5 Converter
+
+## Description
+A Figma plugin with the goal to convert Figma Design Mockup into Fiori UI5 XML Code 
 
 ## Development guide
 
