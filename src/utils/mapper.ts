@@ -42,9 +42,11 @@ export const figmaInstanceNameToUI5ControlMap: { [key: string]: string } = {
 	"Feed List Item": "sap.m.FeedListItem",
 	"Upload Collection": "sap.m.UploadCollection",
 	"View Settings Dialog": "sap.m.ViewSettingsDialog",
-	// Layouts
 	"Horizontal Layout": "sap.m.HBox",
 	"Vertical Layout": "sap.m.VBox",
 	"Grid Layout": "sap.ui.layout.Grid",
 	FlexBox: "sap.m.FlexBox",
+	// Contoh dari log Anda (sesuaikan jika ini adalah nama instance yang valid di kit Anda):
+	".base/Input Label": "sap.m.Label",
+	".base/Input Field": "sap.m.Input",
 };
