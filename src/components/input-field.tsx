@@ -28,7 +28,6 @@ const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
 		const onChangeHandler = useCallback(
 			(e: TargetedEvent<HTMLInputElement, Event>) => {
 				if (onChangeValue) {
-					console.log("Logged Input", e.currentTarget.value);
 					onChangeValue(e.currentTarget.value);
 				}
 			},
