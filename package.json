@@ -4,8 +4,7 @@
     "@create-figma-plugin/utilities": "^4.0.1",
     "preact": ">=10",
     "prismjs": "1.29.0",
-    "react-simple-code-editor": "0.13.1",
-    "xml-formatter": "^3.6.6"
+    "react-simple-code-editor": "0.13.1"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
