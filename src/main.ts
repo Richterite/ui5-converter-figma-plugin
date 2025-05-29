@@ -33,6 +33,7 @@ export default function () {
 		}
 		const formatter = new Formatter();
 		try {
+			// formatter.traverseLogger(selection[0]);
 			const xml = formatter.generateXML(selection, viewModules);
 			figma.notify("XML generated successfully!");
 			setTimeout(() => {
@@ -45,16 +46,6 @@ export default function () {
 			const message = e instanceof Error ? e.message : String(e);
 			figma.notify(`Error generating XML: ${message}`, { error: true });
 		}
-
-		// formatter.traverseLogger(figma.currentPage.selection[0]);
-		// const xml = formatter.generateXML(figma.currentPage.selection);
-		// figma.notify("XML generated successfully!");
-		// setTimeout(() => {
-		// 	figma.ui.postMessage({
-		// 		type: "XML_RESULT",
-		// 		xml,
-		// 	});
-		// }, 1000);
 	});
 	on("COPY_TO_CLIPBOARD", () => {
 		figma.notify("XML copied to clipboard!");
