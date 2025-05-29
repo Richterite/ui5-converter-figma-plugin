@@ -85,3 +85,12 @@
   margin-bottom: 4px;
   font-size: 0.9em;
 }
+
+
+.input-text {
+  width: 100%;
+  padding: 4px;
+  margin: 4px 0;
+  background-color: #EAEFEF;
+  color: #333446;
+}
