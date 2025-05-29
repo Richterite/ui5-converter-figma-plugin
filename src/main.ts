@@ -16,19 +16,29 @@ export default function () {
 			figma.notify("Please select at least one layer to generate XML.", {
 				error: true,
 			});
+			figma.ui.postMessage({
+				type: "XML_ERROR",
+				message: "No layers selected.",
+			});
 			return;
 		}
 		const formatter = new Formatter();
 		try {
+			// -- uncomment if needed --
+			// For logging the tree structure
 			// formatter.traverseLogger(selection[0]);
-			const xml = formatter.generateXML(selection, viewModules);
-			figma.notify("XML generated successfully!");
+
+			// for formatting whole XML Structure (Header + content + footer) but not reactive
+			// const xml = formatter.generateXML(selection, viewModules);
+			const bodyXML = formatter.generateBodyXML(selection);
 			setTimeout(() => {
 				figma.ui.postMessage({
 					type: "XML_RESULT",
-					xml,
+					bodyXML: bodyXML,
+					viewModules: viewModules,
 				});
 			}, 1000);
+			figma.notify("XML generated successfully!");
 		} catch (e: unknown) {
 			const message = e instanceof Error ? e.message : String(e);
 			figma.notify(`Error generating XML: ${message}`, { error: true });
@@ -38,7 +48,7 @@ export default function () {
 		figma.notify("XML copied to clipboard!");
 	});
 	showUI(
-		{ height: 480, width: 800 },
+		{ height: 520, width: 800 },
 		{
 			placeholder:
 				"Select a Figma frame/node and click 'Generate XML'.\nConfigure modules below.",
