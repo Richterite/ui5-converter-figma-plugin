@@ -1,6 +1,12 @@
 import "!prismjs/themes/prism-okaidia.css";
 
-import { Button, Container, Text, render } from "@create-figma-plugin/ui";
+import {
+	Button,
+	Container,
+	Text,
+	VerticalSpace,
+	render,
+} from "@create-figma-plugin/ui";
 import { emit, on } from "@create-figma-plugin/utilities";
 import { h } from "preact";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
@@ -25,6 +31,7 @@ function copyToClipboard(text: string) {
 		navigator.clipboard
 			.writeText(text)
 			.then(() => {
+				// biome-ignore lint/suspicious/noConsoleLog: For Logging Only
 				console.log("Copied to clipboard using Clipboard API");
 			})
 			.catch((err) => {
@@ -43,7 +50,6 @@ function copyToClipboard(text: string) {
 		}
 		document.body.removeChild(textArea);
 	}
-	console.log("Code copied unsecured");
 	emit<CopyToClipboardHandler>("COPY_TO_CLIPBOARD");
 }
 
@@ -65,102 +71,124 @@ const initialViewModules: ModulesInitiator = {
 };
 
 function Plugin({ placeholder }: { placeholder: string }) {
-	const [xml, setXml] = useState("");
+	const [displayXml, setDisplayXml] = useState<string>("");
+	const [generatedBodyXml, setGenereatedBodyXml] = useState<string>("");
 	const [currentViewModules, setCurrentViewModules] =
 		useState<ModulesInitiator>(initialViewModules);
 
-	const [controllerName, setControllerName] = useState<string>(
-		initialViewModules.controllerName,
-	);
-	const [pageTitle, setPageTitle] = useState<string>(
-		initialViewModules.pageTitle,
-	);
+	const [isLoading, setIsloading] = useState<boolean>(false);
 
 	const builderRef = useRef(new BlockBuilder(figmaInstanceNameToUI5ControlMap));
 	const formatterRef = useRef(new Formatter());
 
-	const updatePreviewXML = useCallback((viewModules: ModulesInitiator) => {
-		const { header, footer, pageRequiresContentTag } =
-			builderRef.current.blockInitiator(viewModules);
-		let previewBody = "";
-		if (pageRequiresContentTag) {
-			previewBody = `  <content>\n    ${previewBody}\n  </content>\n`;
-		}
+	const buildFormatFullXml = useCallback(
+		(body: string, viewModules: ModulesInitiator) => {
+			const { header, footer, pageRequiresContentTag } =
+				builderRef.current.blockInitiator(viewModules);
+			let content = body;
 
-		setXml(
-			formatterRef.current.formatXml(`${header}\n${previewBody}${footer}`),
-		);
-	}, []);
+			if (pageRequiresContentTag) {
+				if (body.trim()) {
+					const indentedBody = body
+						.split("\n")
+						.map((line) => `    ${line}`)
+						.join("\n");
+					content = `    <content>\n${indentedBody}\n    </content>`;
+				} else {
+					content = "    <content></content>";
+				}
+			}
+
+			return formatterRef.current.formatXml(`${header}\n${content}\n${footer}`);
+		},
+		[],
+	);
 
 	useEffect(() => {
-		updatePreviewXML(initialViewModules);
-	}, [updatePreviewXML]);
+		const bodyForDisplay = generatedBodyXml || "    ";
+		const fullXml = buildFormatFullXml(bodyForDisplay, currentViewModules);
+		setDisplayXml(fullXml);
+	}, [buildFormatFullXml, currentViewModules, generatedBodyXml]);
 
 	const onCopyButtonClick = useCallback(() => {
-		if (xml && xml.length > 0) {
-			copyToClipboard(xml);
+		if (displayXml && displayXml.length > 0) {
+			copyToClipboard(displayXml);
 		} else {
 			console.warn("Tidak ada XML untuk disalin.");
 		}
-	}, [xml]);
+	}, [displayXml]);
 
 	const onHandleGenerateClick = useCallback(() => {
+		setIsloading(true);
 		emit<GenerateXMLHandler>("GENERATE_XML", currentViewModules);
 	}, [currentViewModules]);
 
 	const onCheckboxChangeHandler = useCallback(
-		(selectedModule: string[]) => {
-			const newViewModules: ModulesInitiator = {
-				...initialViewModules,
-			};
+		(libraryPath: string, isChecked: boolean) => {
+			setCurrentViewModules((prev) => {
+				const newModules: ModulesInitiator = { ...prev };
 
-			for (const module of selectedModule) {
 				const xmlnsKey = (
 					Object.keys(availableModules) as Array<keyof typeof availableModules>
-				).find((key) => availableModules[key] === module);
+				).find((key) => availableModules[key] === libraryPath);
 
 				if (xmlnsKey) {
-					newViewModules[xmlnsKey] = module;
+					if (isChecked) {
+						newModules[xmlnsKey] = libraryPath;
+					} else {
+						delete newModules[xmlnsKey];
+					}
 				}
-				// Use xmlnsKey here as needed
-			}
 
-			if (!newViewModules.xmlns) {
-				newViewModules.xmlns = "sap.m";
-			}
-
-			if (!newViewModules["xmlns:mvc"]) {
-				newViewModules["xmlns:mvc"] = "sap.ui.core.mvc";
-			}
-
-			setCurrentViewModules(newViewModules);
-			updatePreviewXML(newViewModules);
+				return newModules;
+			});
 		},
-		[updatePreviewXML],
+		[],
 	);
+
+	const titleChangeHandler = useCallback((newTitle: string) => {
+		setCurrentViewModules((prev) => ({
+			...prev,
+			pageTitle: newTitle,
+		}));
+	}, []);
+
+	const controllerNameChangeHandler = useCallback((newController: string) => {
+		setCurrentViewModules((prev) => ({
+			...prev,
+			controllerName: newController,
+		}));
+	}, []);
 
 	useEffect(() => {
 		window.onmessage = (e) => {
+			setIsloading(false);
 			const { pluginMessage } = e.data;
 			if (pluginMessage.type === "XML_RESULT") {
-				setXml(pluginMessage.xml);
+				setGenereatedBodyXml(pluginMessage.bodyXML);
+				setCurrentViewModules(pluginMessage.viewModules);
 			}
 		};
 	}, []);
 
 	const checkboxOptions = Object.entries(availableModules)
 		.filter(
-			([key, _]) =>
-				key !== "xmlns" && key !== "xmlns:mvc" && key !== "xmlns:core",
+			([key]) => key !== "xmlns" && key !== "xmlns:mvc" && key !== "xmlns:core",
 		)
 		.map(([key, value]) => ({
 			label: key.startsWith("xmlns:")
 				? key.substring("xmlns:".length).toUpperCase()
 				: value,
 			value: value,
-			defaultChecked: !!initialViewModules[key],
 		}));
-	console.log("Checkbox options:", checkboxOptions);
+	const checkedLibraries = Object.entries(currentViewModules)
+		.filter(
+			([key, value]) =>
+				key.startsWith("xmlns:") &&
+				value &&
+				availableModules[key as keyof typeof availableModules] === value,
+		)
+		.map(([_, value]) => value as string);
 	return (
 		<Container
 			style={{
@@ -176,30 +204,34 @@ function Plugin({ placeholder }: { placeholder: string }) {
 					<CheckboxGroup
 						title="Select Namespaces"
 						options={checkboxOptions}
+						checkedLibraries={checkedLibraries}
 						onValueChange={onCheckboxChangeHandler}
 					/>
+					<VerticalSpace space="small" />
 					<fieldset className={styles.fieldset}>
 						<legend className={styles.legend}>Configuration</legend>
 						<InputField
 							labelName="Page Title"
-							placeholder={pageTitle}
-							value={pageTitle}
-							onChangeValue={setPageTitle}
+							placeholder="Enter Page Title"
+							value={currentViewModules.pageTitle ?? ""}
+							onChangeValue={titleChangeHandler}
 						/>
 						<InputField
 							labelName="Controller Name"
-							placeholder={controllerName}
-							value={controllerName}
-							onChangeValue={setControllerName}
+							placeholder="Enter Controller Name"
+							value={currentViewModules.controllerName ?? ""}
+							onChangeValue={controllerNameChangeHandler}
 						/>
 					</fieldset>
-
+					<VerticalSpace space="medium" />
 					<Button
 						fullWidth
 						onClick={onHandleGenerateClick}
 						style={{
 							marginTop: "16px",
 						}}
+						disabled={isLoading}
+						loading={isLoading}
 					>
 						Generate XML
 					</Button>
@@ -213,13 +245,14 @@ function Plugin({ placeholder }: { placeholder: string }) {
 								return code;
 							}
 						}}
+						onValueChange={() => {}}
 						padding={10}
 						disabled
-						onValueChange={setXml}
-						value={xml}
+						value={displayXml}
 						placeholder={placeholder}
 						className={styles.editor}
 					/>
+					<VerticalSpace space="small" />
 					<Button
 						fullWidth
 						onClick={onCopyButtonClick}
