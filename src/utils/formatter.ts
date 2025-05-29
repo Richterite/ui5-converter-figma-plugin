@@ -1,4 +1,3 @@
-import xmlFormat from "xml-formatter";
 import { BlockBuilder, type ModulesInitiator } from "./builder";
 import { figmaInstanceNameToUI5ControlMap } from "./mapper";
 export class Formatter {
@@ -30,7 +29,14 @@ export class Formatter {
 		}
 		// const body = nodes.map((node) => this.traverseNode(node)).join("\n");
 		const fullXML = `${docHeader}\n${outBody}\n${docFooter}`;
-		return xmlFormat(fullXML);
+		return this.formatXml(fullXML);
+	}
+
+	public generateBodyXML(nodes: readonly SceneNode[]) {
+		return nodes
+			.map((node) => this.traverseNode(node))
+			.filter((xmlString) => xmlString && xmlString.trim() !== "")
+			.join("\n");
 	}
 
 	private traverseNode(node: SceneNode): string {
@@ -268,47 +274,6 @@ export class Formatter {
 		}
 
 		return attributes.join(" ");
-		// const instanceName = instanceNode.name;
-
-		// if ("children" in instanceNode && instanceNode.children) {
-		// 	const textChildren = instanceNode.children.filter(
-		// 		(child) => child.type === "TEXT",
-		// 	) as TextNode[];
-
-		// 	if (textChildren.length > 0) {
-		// 		if (
-		// 			ui5ControlType &&
-		// 			(ui5ControlType.endsWith(".Button") ||
-		// 				ui5ControlType.endsWith(".Label") ||
-		// 				ui5ControlType.endsWith(".Title") ||
-		// 				ui5ControlType.endsWith(".Link"))
-		// 		) {
-		// 			const primaryTextNode = textChildren[0];
-		// 			if (primaryTextNode?.characters.trim()) {
-		// 				attributes += ` text="${this.escapeXml(primaryTextNode.characters.trim())}"`;
-		// 			}
-		// 		}
-		// 	} else if (ui5ControlType?.endsWith(".Input")) {
-		// 		const valueNode = textChildren.find(
-		// 			(node) =>
-		// 				node.name.toLowerCase().includes("value") ||
-		// 				node.name.toLowerCase() === instanceName.toLowerCase(),
-		// 		);
-		// 		const placeholderNode = textChildren.find((node) =>
-		// 			node.name.toLowerCase().includes("placeholder"),
-		// 		);
-
-		// 		if (valueNode?.characters.trim()) {
-		// 			attributes += ` value="${this.escapeXml(valueNode.characters.trim())}"`;
-		// 		} else if (textChildren.length === 1 && !placeholderNode) {
-		// 			attributes += ` value="${this.escapeXml(textChildren[0].characters.trim())}"`;
-		// 		}
-
-		// 		if (placeholderNode?.characters.trim()) {
-		// 			attributes += ` placeholder="${this.escapeXml(placeholderNode.characters.trim())}"`;
-		// 		}
-		// 	}
-		// }
 	}
 
 	private escapeXml(unsafe: string): string {
@@ -339,28 +304,22 @@ export class Formatter {
 			if (index === 0) {
 				currentLine = `${nodePart}>`;
 			} else if (index === array.length - 1) {
-				// Bagian terakhir, tambahkan <
 				currentLine = `<${nodePart}`;
 			} else {
-				// Bagian tengah, tambahkan < dan >
 				currentLine = `<${nodePart}>`;
 			}
 
 			const trimmedLine = currentLine.trim();
 
 			if (trimmedLine.startsWith("</")) {
-				// Tag penutup
 				indentLevel = Math.max(0, indentLevel - 1);
 				formatted += `${tab.repeat(indentLevel)}${trimmedLine}\n`;
 			} else if (trimmedLine.endsWith("/>")) {
-				// Tag self-closing
 				formatted += `${tab.repeat(indentLevel)}${trimmedLine}\n`;
 			} else if (trimmedLine.startsWith("<")) {
-				// Tag pembuka
 				formatted += `${tab.repeat(indentLevel)}${trimmedLine}\n`;
 				indentLevel++;
 			} else {
-				// Konten teks (jika ada setelah split)
 				formatted += `${tab.repeat(indentLevel)}${trimmedLine}\n`;
 			}
 		});
@@ -368,17 +327,7 @@ export class Formatter {
 	}
 
 	traverseLogger(node: SceneNode, depth = 0): void {
-		// if (node.type === "COMPONENT" || node.type === "COMPONENT_SET") {
-		// 	const componentNode = node as ComponentNode | ComponentSetNode;
-		// 	console.log(
-		// 		`${"".repeat(depth * 2)}- ${componentNode.name} (${componentNode.type}) [Component] ${componentNode.description}`,
-		// 	);
-		// } else if (node.type === "INSTANCE") {
-		// 	const instanceNode = node as InstanceNode;
-		// 	console.log(
-		// 		`${"".repeat(depth * 2)}- ${instanceNode.name}  ${this.builder.buildBlock(instanceNode.name, instanceNode.children.length > 0)} [Instance] `,
-		// 	);
-		// }
+		// biome-ignore lint/suspicious/noConsoleLog: for logging purpose
 		console.log(`${" ".repeat(depth * 2)}- ${node.name} (${node.type})`);
 		if ("children" in node) {
 			for (const child of node.children) {
