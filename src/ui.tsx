@@ -9,6 +9,7 @@ import "prismjs/components/prism-xml-doc.js";
 import Editor from "react-simple-code-editor";
 
 import CheckboxGroup from "./components/chekcbox";
+import InputField from "./components/input-field";
 import styles from "./styles.css";
 import type {
 	CopyToClipboardHandler,
@@ -62,17 +63,18 @@ const initialViewModules: ModulesInitiator = {
 	xmlns: "sap.m",
 	"xmlns:mvc": "sap.ui.core.mvc",
 };
-const modules = {
-	xmlns: "sap.m",
-	"xmlns:f": "sap.f",
-};
-
-const formatter = new Formatter();
 
 function Plugin({ placeholder }: { placeholder: string }) {
 	const [xml, setXml] = useState("");
 	const [currentViewModules, setCurrentViewModules] =
 		useState<ModulesInitiator>(initialViewModules);
+
+	const [controllerName, setControllerName] = useState<string>(
+		initialViewModules.controllerName,
+	);
+	const [pageTitle, setPageTitle] = useState<string>(
+		initialViewModules.pageTitle,
+	);
 
 	const builderRef = useRef(new BlockBuilder(figmaInstanceNameToUI5ControlMap));
 	const formatterRef = useRef(new Formatter());
@@ -120,7 +122,7 @@ function Plugin({ placeholder }: { placeholder: string }) {
 				if (xmlnsKey) {
 					newViewModules[xmlnsKey] = module;
 				}
-				// You can use xmlnsKey here as needed
+				// Use xmlnsKey here as needed
 			}
 
 			if (!newViewModules.xmlns) {
@@ -133,15 +135,6 @@ function Plugin({ placeholder }: { placeholder: string }) {
 
 			setCurrentViewModules(newViewModules);
 			updatePreviewXML(newViewModules);
-			// const blockModule = Object.fromEntries(
-			// 	Object.entries(modules).filter(([_, value]) => values.includes(value)),
-			// );
-			// const builder = new BlockBuilder();
-			// console.log(
-			// 	"Checkbox values changed:",
-			// 	builder.blockInitiator(blockModule),
-			// );
-			// setXml(formatter.formatXml(builder.blockInitiator(blockModule).join(" ")));
 		},
 		[updatePreviewXML],
 	);
@@ -153,11 +146,6 @@ function Plugin({ placeholder }: { placeholder: string }) {
 				setXml(pluginMessage.xml);
 			}
 		};
-		// on<GenerateXMLResult>("XML_RESULT", (pluginMessage: { xml: string }) => {
-		// 	if (pluginMessage && typeof pluginMessage.xml === "string") {
-		// 		setXml(pluginMessage.xml);
-		// 	}
-		// });
 	}, []);
 
 	const checkboxOptions = Object.entries(availableModules)
@@ -190,6 +178,22 @@ function Plugin({ placeholder }: { placeholder: string }) {
 						options={checkboxOptions}
 						onValueChange={onCheckboxChangeHandler}
 					/>
+					<fieldset className={styles.fieldset}>
+						<legend className={styles.legend}>Configuration</legend>
+						<InputField
+							labelName="Page Title"
+							placeholder={pageTitle}
+							value={pageTitle}
+							onChangeValue={setPageTitle}
+						/>
+						<InputField
+							labelName="Controller Name"
+							placeholder={controllerName}
+							value={controllerName}
+							onChangeValue={setControllerName}
+						/>
+					</fieldset>
+
 					<Button
 						fullWidth
 						onClick={onHandleGenerateClick}
