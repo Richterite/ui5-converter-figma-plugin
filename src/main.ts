@@ -9,19 +9,6 @@ import type { GenerateXMLHandler } from "./types";
 import { Formatter } from "./utils/formatter";
 
 export default function () {
-	// once<InsertCodeHandler>('INSERT_CODE', async function (code: string) {
-	//   const text = figma.createText()
-	//   await loadFontsAsync([text])
-	//   text.characters = code
-	//   figma.currentPage.selection = [text]
-	//   figma.viewport.scrollAndZoomIntoView([text])
-	//   figma.closePlugin()
-	// })
-	// on('UI_READY', function () {
-	//   console.log('UI IS READY')
-	//   figma.ui.postMessage({ type: 'XML_RESULT', xml: 'test' })
-	//   console.log('Message sent to ui')
-	// })
 	on<GenerateXMLHandler>("GENERATE_XML", (viewModules) => {
 		figma.notify("Generating XML...");
 		const selection = figma.currentPage.selection;
