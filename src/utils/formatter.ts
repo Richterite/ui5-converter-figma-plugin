@@ -1,3 +1,4 @@
+import type { MapperValues } from "../types";
 import { BlockBuilder, type ModulesInitiator } from "./builder";
 import { figmaInstanceNameToUI5ControlMap } from "./mapper";
 export class Formatter {
@@ -117,7 +118,7 @@ export class Formatter {
 		return "";
 	}
 
-	private getUi5ControlType(instanceName: string) {
+	private getUi5ControlType(instanceName: string): MapperValues {
 		let fullControlName = this.builder.mapper[instanceName];
 		if (!fullControlName) {
 			const keyFound = Object.keys(this.builder.mapper).find((key) =>
@@ -127,10 +128,13 @@ export class Formatter {
 				fullControlName = this.builder.mapper[keyFound];
 			}
 		}
-		return fullControlName;
+		return fullControlName as MapperValues;
 	}
 
-	private extractAttributes(instanceNode: SceneNode, ui5ControlType?: string) {
+	private extractAttributes(
+		instanceNode: SceneNode,
+		ui5ControlType?: MapperValues,
+	) {
 		const attributes: string[] = [];
 		const addAttribute = (name: string, value?: string | null) => {
 			if (value?.trim()) {
@@ -205,26 +209,6 @@ export class Formatter {
 				}
 			}
 
-			if (ui5ControlType === "sap.ui.core.Icon") {
-				let iconSrc = instanceNode.name;
-				if ("children" in instanceNode && instanceNode.children) {
-					const textChildNode = instanceNode.children.find(
-						(c): c is TextNode =>
-							c.type === "TEXT" &&
-							c.characters !== undefined &&
-							c.characters.trim().startsWith("sap-icon://"),
-					);
-					if (textChildNode) {
-						iconSrc = textChildNode.characters.trim();
-					}
-
-					if (!iconSrc.includes("://") && iconSrc.trim()) {
-						iconSrc = `sap-icon://${iconSrc.toLowerCase().replace(/\s+/g, "-").replace(/[()]/g, "")}`;
-					}
-					addAttribute("src", iconSrc);
-				}
-			}
-
 			if (
 				ui5ControlType.endsWith(".Button") &&
 				"children" in instanceNode &&
@@ -232,27 +216,7 @@ export class Formatter {
 			) {
 				for (const child of instanceNode.children) {
 					let iconNamedFound: string | undefined;
-					if (child.type === "INSTANCE") {
-						const childUi5Type = this.getUi5ControlType(child.name);
-						if (childUi5Type === "sap.ui.core.Icon") {
-							iconNamedFound = child.name;
-							if ("children" in child && child.children) {
-								const iconTextChild = child.children.find(
-									(c): c is TextNode =>
-										c.type === "TEXT" && c.characters !== undefined,
-								);
-								if (iconTextChild?.characters) {
-									if (
-										iconTextChild.characters.trim().startsWith("sap-icon://")
-									) {
-										iconNamedFound = iconTextChild.characters.trim();
-									} else {
-										iconNamedFound = iconTextChild.characters.trim();
-									}
-								}
-							}
-						}
-					} else if (
+					if (
 						child.type === "TEXT" &&
 						(child.name.toLowerCase().includes("icon") ||
 							child.characters?.startsWith("sap-icon://"))

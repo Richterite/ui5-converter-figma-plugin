@@ -1,4 +1,4 @@
-export const figmaInstanceNameToUI5ControlMap: { [key: string]: string } = {
+export const figmaInstanceNameToUI5ControlMap = {
 	".base/Input Label": "sap.m.Label",
 	".base/Input Field": "sap.m.Input",
 	Button: "sap.m.Button",
@@ -44,4 +44,4 @@ export const figmaInstanceNameToUI5ControlMap: { [key: string]: string } = {
 	"Vertical Layout": "sap.m.VBox",
 	"Grid Layout": "sap.ui.layout.Grid",
 	FlexBox: "sap.m.FlexBox",
-};
+} as const;

@@ -1,5 +1,6 @@
 import type { EventHandler } from "@create-figma-plugin/utilities";
 import type { ModulesInitiator } from "./utils/builder";
+import type { figmaInstanceNameToUI5ControlMap } from "./utils/mapper";
 
 export interface ResizeWindowHandler extends EventHandler {
 	name: "RESIZE_WINDOW";
@@ -20,3 +21,11 @@ export interface CopyToClipboardHandler extends EventHandler {
 	name: "COPY_TO_CLIPBOARD";
 	handler: () => void;
 }
+
+export type SelectOptions = {
+	label: string;
+	value: string | number;
+};
+
+export type MapperKey = keyof typeof figmaInstanceNameToUI5ControlMap;
+export type MapperValues = (typeof figmaInstanceNameToUI5ControlMap)[MapperKey];
