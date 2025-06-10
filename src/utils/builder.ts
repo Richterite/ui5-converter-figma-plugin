@@ -28,23 +28,41 @@ export type Mapper = { [key: string]: string };
 
 export class BlockBuilder {
 	mapper: Mapper;
-	private readonly ALWAYS_SELF_CLOSING_CONTROLS = ["sap.ui.core.Icon"];
+	private readonly SELF_CLOSING_CONTROLS = [
+		"sap.m.Input",
+		"sap.m.Label",
+		"sap.m.Title",
+		"sap.m.Text",
+		"sap.ui.core.Icon",
+		"sap.m.Avatar",
+		"sap.m.ProgressIndicator",
+		"sap.m.Switch",
+		"sap.m.BusyIndicator",
+		"sap.m.RatingIndicator",
+		"sap.m.Link",
+		"sap.m.CheckBox",
+		"sap.m.RadioButton",
+		"sap.m.Button",
+	];
 
 	constructor(mapper: Mapper) {
 		this.mapper = mapper;
 	}
 
-	private getFullControlName(instanceName: string) {
-		let fullControlName = this.mapper[instanceName];
-		if (!fullControlName) {
-			const foundKey = Object.keys(this.mapper).find((key) =>
-				instanceName.toLowerCase().includes(key.toLowerCase()),
-			);
-			if (foundKey) {
-				fullControlName = this.mapper[foundKey];
-			}
+	public getFullControlName(instanceName: string): string | undefined {
+		if (this.mapper[instanceName]) {
+			return this.mapper[instanceName];
 		}
-		return fullControlName;
+
+		const lowerInstanceName = instanceName.toLowerCase();
+		const foundKeyExact = Object.keys(this.mapper).find(
+			(key) => key.toLowerCase() === lowerInstanceName,
+		);
+		if (foundKeyExact) {
+			return this.mapper[foundKeyExact];
+		}
+
+		return undefined;
 	}
 
 	getBaseTagName(fullControlName: string) {
@@ -70,7 +88,7 @@ export class BlockBuilder {
 			}
 		}
 
-		if (!xmlAttrs.xmlns) {
+		if (xmlAttrs.xmlns) {
 			attrString += ` xmlns="sap.m"`;
 		}
 
@@ -81,8 +99,8 @@ export class BlockBuilder {
 			attrString += ` xmlns:mvc="sap.ui.core.mvc"`;
 		}
 
-		const header = `<mvc:View ${attrString}><App><Page title="${pageTitle}">`;
-		const footer = "</Page></App></mvc:View>";
+		const header = `<mvc:View ${attrString}><Shell><App><Page title="${pageTitle}">`;
+		const footer = "</Page></App></Shell></mvc:View>";
 		// const attr = Object.entries(modulesInit)
 		// 	.map(([key, value]) => {
 		// 		return `${key}="${value}"`;
@@ -95,22 +113,16 @@ export class BlockBuilder {
 		};
 	}
 
-	buildBlock(instanceName: string, hasChildren: boolean) {
+	public buildBlock(instanceName: string): string[] {
 		const fullControlName = this.getFullControlName(instanceName);
-		if (!fullControlName) {
-			return [];
-		}
-
+		if (!fullControlName) return [];
 		const controlTag = this.getBaseTagName(fullControlName);
 
-		if (hasChildren) {
-			return [`<${controlTag}>`, `</${controlTag}>`];
-		}
-		if (this.ALWAYS_SELF_CLOSING_CONTROLS.includes(fullControlName)) {
+		if (this.SELF_CLOSING_CONTROLS.includes(fullControlName)) {
 			return [`<${controlTag} />`];
 		}
 
-		return [`<${controlTag} />`];
+		return [`<${controlTag}>`, `</${controlTag}>`];
 	}
 
 	// blockBuilder(headers: ModulesInitiator, content: string) {
