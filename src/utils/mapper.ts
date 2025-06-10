@@ -1,7 +1,7 @@
 export const figmaInstanceNameToUI5ControlMap: { [key: string]: string } = {
-	"Input Field": "sap.m.Input",
+	".base/Input Label": "sap.m.Label",
+	".base/Input Field": "sap.m.Input",
 	Button: "sap.m.Button",
-	Checkbox: "sap.m.CheckBox",
 	"Radio Button": "sap.m.RadioButton",
 	Select: "sap.m.Select",
 	"Date Picker": "sap.m.DatePicker",
@@ -11,8 +11,6 @@ export const figmaInstanceNameToUI5ControlMap: { [key: string]: string } = {
 	Label: "sap.m.Label",
 	"Text Area": "sap.m.TextArea",
 	"Search Field": "sap.m.SearchField",
-	Icon: "sap.ui.core.Icon",
-	Avatar: "sap.m.Avatar",
 	Card: "sap.f.Card",
 	Panel: "sap.m.Panel",
 	Dialog: "sap.m.Dialog",
@@ -46,7 +44,4 @@ export const figmaInstanceNameToUI5ControlMap: { [key: string]: string } = {
 	"Vertical Layout": "sap.m.VBox",
 	"Grid Layout": "sap.ui.layout.Grid",
 	FlexBox: "sap.m.FlexBox",
-	// Contoh dari log Anda (sesuaikan jika ini adalah nama instance yang valid di kit Anda):
-	".base/Input Label": "sap.m.Label",
-	".base/Input Field": "sap.m.Input",
 };
