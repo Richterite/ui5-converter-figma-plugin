@@ -107,9 +107,4 @@ export class BlockBuilder {
 
 		return [`<${controlTag}>`, `</${controlTag}>`];
 	}
-
-	// blockBuilder(headers: ModulesInitiator, content: string) {
-	// 	const initBlock = this.blockInitiator(headers).split("|");
-	// 	return initBlock[0] + content + initBlock[1];
-	// }
 }
