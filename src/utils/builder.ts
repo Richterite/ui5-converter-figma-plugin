@@ -9,23 +9,6 @@ export interface ModulesInitiator {
 	[key: string]: string | undefined;
 }
 export type Mapper = { [key: string]: string };
-
-// function BlockInitiator( modulesInit : ModulesInitiator){
-//     const attr = Object.entries(modulesInit)
-//     .map(([key, value]) => `${key}="${value}"`)
-//     .join(' ');
-//     return `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns:core="sap.ui.core" ${attr} /><App><Page>|</Page></App></mvc:View> `
-// }
-
-// export function blockBuilder(headers: ModulesInitiator , content: string) {
-//     const initBlock = BlockInitiator(headers).split('|');
-//     return initBlock[0] + content + initBlock[1]
-// }
-
-// interface BlockBuilderInterface {
-//     new
-// }
-
 export class BlockBuilder {
 	mapper: Mapper;
 	private readonly SELF_CLOSING_CONTROLS = [
