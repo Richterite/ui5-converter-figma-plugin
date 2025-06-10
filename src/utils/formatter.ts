@@ -50,7 +50,7 @@ export class Formatter {
 
 			const ui5ControlType = this.getUi5ControlType(instanceName);
 
-			const tags = this.builder.buildBlock(instanceName, hasChild);
+			const tags = this.builder.buildBlock(instanceName);
 			const attributes = this.extractAttributes(instanceNode, ui5ControlType);
 
 			let childXML = "";
@@ -140,8 +140,6 @@ export class Formatter {
 				}
 			}
 		};
-
-		addAttribute("id", instanceNode.id);
 
 		if (ui5ControlType) {
 			const hasChild = "children" in instanceNode && instanceNode.children;
@@ -249,7 +247,7 @@ export class Formatter {
 									) {
 										iconNamedFound = iconTextChild.characters.trim();
 									} else {
-										iconNamedFound = iconTextChild.characters.trim(); // Ambil teks mentah jika ada
+										iconNamedFound = iconTextChild.characters.trim();
 									}
 								}
 							}
@@ -326,13 +324,21 @@ export class Formatter {
 		return formatted.trim();
 	}
 
-	traverseLogger(node: SceneNode, depth = 0): void {
-		// biome-ignore lint/suspicious/noConsoleLog: for logging purpose
-		console.log(`${" ".repeat(depth * 2)}- ${node.name} (${node.type})`);
+	traverseLogger(node: SceneNode, depth = 0, logLines: string[] = []): string {
+		logLines.push(
+			`${" ".repeat(depth * 2)}${"-".repeat(depth + 1)} ${node.name} (${node.type})`,
+		);
 		if ("children" in node) {
 			for (const child of node.children) {
-				this.traverseLogger(child, depth + 1);
+				this.traverseLogger(child, depth + 1, logLines);
 			}
 		}
+		if (depth === 0) {
+			const logString = logLines.join("\n");
+			// biome-ignore lint/suspicious/noConsoleLog: for logging purpose
+			console.log(logString);
+			return logString;
+		}
+		return "";
 	}
 }
