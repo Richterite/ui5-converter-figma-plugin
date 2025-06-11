@@ -1,9 +1,4 @@
-import {
-	loadFontsAsync,
-	on,
-	once,
-	showUI,
-} from "@create-figma-plugin/utilities";
+import { on, showUI } from "@create-figma-plugin/utilities";
 
 import type { GenerateXMLHandler } from "./types";
 import { Formatter } from "./utils/formatter";
@@ -28,8 +23,6 @@ export default function () {
 			// For logging the tree structure
 			// formatter.traverseLogger(selection[0]);
 
-			// for formatting whole XML Structure (Header + content + footer) but not reactive
-			// const xml = formatter.generateXML(selection, viewModules);
 			const bodyXML = formatter.generateBodyXML(selection);
 			setTimeout(() => {
 				figma.ui.postMessage({
