@@ -7,23 +7,27 @@ import {
 	VerticalSpace,
 	render,
 } from "@create-figma-plugin/ui";
-import { emit, on } from "@create-figma-plugin/utilities";
-import { h } from "preact";
-import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import { emit } from "@create-figma-plugin/utilities";
+import {
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "preact/hooks";
 import { highlight, languages } from "prismjs";
 import "prismjs/components/prism-xml-doc.js";
 import Editor from "react-simple-code-editor";
 
+// biome-ignore lint/correctness/noUnusedImports: use to maintain preact component
+import { h } from "preact";
 import CheckboxGroup from "./components/chekcbox";
 import InputField from "./components/input-field";
 import styles from "./styles.css";
-import type {
-	CopyToClipboardHandler,
-	GenerateXMLHandler,
-	GenerateXMLResult,
-} from "./types";
+import type { CopyToClipboardHandler, GenerateXMLHandler } from "./types";
 import { BlockBuilder, type ModulesInitiator } from "./utils/builder";
 import { Formatter } from "./utils/formatter";
+import { isSameObject } from "./utils/helper";
 import { figmaInstanceNameToUI5ControlMap } from "./utils/mapper";
 
 function copyToClipboard(text: string) {
@@ -81,6 +85,13 @@ function Plugin({ placeholder }: { placeholder: string }) {
 	const builderRef = useRef(new BlockBuilder(figmaInstanceNameToUI5ControlMap));
 	const formatterRef = useRef(new Formatter());
 
+	const needResetMemo = useMemo(
+		() =>
+			!isSameObject(currentViewModules, initialViewModules) ||
+			generatedBodyXml.trim() !== "",
+		[currentViewModules, generatedBodyXml],
+	);
+
 	const buildFormatFullXml = useCallback(
 		(body: string, viewModules: ModulesInitiator) => {
 			const { header, footer, pageRequiresContentTag } =
@@ -109,6 +120,11 @@ function Plugin({ placeholder }: { placeholder: string }) {
 		const fullXml = buildFormatFullXml(bodyForDisplay, currentViewModules);
 		setDisplayXml(fullXml);
 	}, [buildFormatFullXml, currentViewModules, generatedBodyXml]);
+
+	const onResetButtonClick = useCallback(() => {
+		setCurrentViewModules(initialViewModules);
+		setGenereatedBodyXml("");
+	}, []);
 
 	const onCopyButtonClick = useCallback(() => {
 		if (displayXml && displayXml.length > 0) {
@@ -189,6 +205,7 @@ function Plugin({ placeholder }: { placeholder: string }) {
 				availableModules[key as keyof typeof availableModules] === value,
 		)
 		.map(([_, value]) => value as string);
+
 	return (
 		<Container
 			style={{
@@ -230,10 +247,21 @@ function Plugin({ placeholder }: { placeholder: string }) {
 						style={{
 							marginTop: "16px",
 						}}
-						disabled={isLoading}
+						disabled={isLoading || needResetMemo}
 						loading={isLoading}
 					>
 						Generate XML
+					</Button>
+					<Button
+						fullWidth
+						onClick={onResetButtonClick}
+						style={{
+							marginTop: "16px",
+						}}
+						danger
+						disabled={!needResetMemo}
+					>
+						Reset
 					</Button>
 				</div>
 				<div className={styles.editorPanel}>
