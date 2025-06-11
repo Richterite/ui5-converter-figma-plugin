@@ -147,6 +147,37 @@ export class Formatter {
 
 		if (ui5ControlType) {
 			const hasChild = "children" in instanceNode && instanceNode.children;
+
+			if (ui5ControlType === "sap.m.FlexBox") {
+				addAttribute("fitContainer", "true");
+				addAttribute("direction", "Column");
+				addAttribute("justifyContent", "Center");
+				addAttribute("alignItems", "Center");
+				addAttribute("class", "sapUiSmallMargin");
+			}
+
+			if (ui5ControlType.endsWith(".Label")) {
+				addAttribute("class", "sapUiSmallMarginBottom");
+				if (hasChild) {
+					const textChild = instanceNode.children.find(
+						(c): c is TextNode => c.type === "TEXT" && !!c.characters,
+					);
+					if (textChild) {
+						const asteriskChild = instanceNode.children.find(
+							(c): c is TextNode =>
+								c.type === "TEXT" && c.name.toLowerCase() === "asterisk",
+						);
+						const fullText =
+							textChild.characters +
+							(asteriskChild ? asteriskChild.characters : "");
+						addAttribute("text", fullText);
+						if (asteriskChild) {
+							addAttribute("required", "true");
+						}
+					}
+				}
+			}
+
 			if (
 				ui5ControlType.endsWith(".Button") ||
 				ui5ControlType.endsWith(".Link") ||
@@ -178,6 +209,7 @@ export class Formatter {
 				ui5ControlType.endsWith(".Input") ||
 				ui5ControlType.endsWith(".TextArea")
 			) {
+				addAttribute("width", "18rem");
 				if (hasChild) {
 					for (const child of instanceNode.children) {
 						if (child.type === "TEXT" && child.characters) {
@@ -209,11 +241,8 @@ export class Formatter {
 				}
 			}
 
-			if (
-				ui5ControlType.endsWith(".Button") &&
-				"children" in instanceNode &&
-				instanceNode.children
-			) {
+			if (ui5ControlType.endsWith(".Button") && hasChild) {
+				addAttribute("class", "sapUiMediumMarginTop");
 				for (const child of instanceNode.children) {
 					let iconNamedFound: string | undefined;
 					if (
