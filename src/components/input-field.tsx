@@ -1,3 +1,4 @@
+// biome-ignore lint/correctness/noUnusedImports: for preact component
 import { h } from "preact";
 import { type TargetedEvent, forwardRef } from "preact/compat";
 import { useCallback, useId } from "preact/hooks";

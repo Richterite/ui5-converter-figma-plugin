@@ -1,7 +1,6 @@
 import { Checkbox, Text, VerticalSpace } from "@create-figma-plugin/ui";
+// biome-ignore lint/correctness/noUnusedImports: maintain preact component
 import { h } from "preact";
-import type { ChangeEvent } from "preact/compat";
-import { useCallback, useState } from "preact/hooks";
 import styles from "../styles.css";
 
 interface CheckboxOption {
