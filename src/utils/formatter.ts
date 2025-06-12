@@ -1,36 +1,10 @@
 import type { MapperValues, TreeChartNode } from "../types";
-import { BlockBuilder, type ModulesInitiator } from "./builder";
+import { BlockBuilder } from "./builder";
 import { figmaInstanceNameToUI5ControlMap } from "./mapper";
 export class Formatter {
 	builder: BlockBuilder;
 	constructor() {
 		this.builder = new BlockBuilder(figmaInstanceNameToUI5ControlMap);
-	}
-
-	generateXML(
-		nodes: readonly SceneNode[],
-		viewModules: ModulesInitiator,
-	): string {
-		const {
-			header: docHeader,
-			footer: docFooter,
-			pageRequiresContentTag,
-		} = this.builder.blockInitiator(viewModules);
-		const bodyContent = nodes
-			.map((node) => this.traverseNode(node))
-			.filter((xmlString) => xmlString && xmlString.trim() !== "")
-			.join("\n");
-
-		let outBody = bodyContent;
-		if (pageRequiresContentTag && bodyContent.trim()) {
-			const contentIndent = "\n";
-			outBody = `<content>${contentIndent}${bodyContent}${contentIndent}</content>`;
-		} else if (pageRequiresContentTag) {
-			outBody = "<content></content>";
-		}
-		// const body = nodes.map((node) => this.traverseNode(node)).join("\n");
-		const fullXML = `${docHeader}\n${outBody}\n${docFooter}`;
-		return this.formatXml(fullXML);
 	}
 
 	public generateBodyXML(nodes: readonly SceneNode[]) {
@@ -342,7 +316,7 @@ export class Formatter {
 
 		if ("children" in node && node.children.length > 0) {
 			chartNode.attributes = {
-				types: node.type,
+				figmaNodeType: node.type,
 			};
 
 			chartNode.children = node.children.map((child) =>
