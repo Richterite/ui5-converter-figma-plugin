@@ -1,23 +1,26 @@
 import { on, showUI } from "@create-figma-plugin/utilities";
 
-import type { GenerateXMLHandler } from "./types";
+import type { GenerateTreeStructure, GenerateXMLHandler } from "./types";
 import { Formatter } from "./utils/formatter";
+
+const formatter = new Formatter();
+const selection = figma.currentPage.selection;
 
 export default function () {
 	on<GenerateXMLHandler>("GENERATE_XML", (viewModules) => {
 		figma.notify("Generating XML...");
-		const selection = figma.currentPage.selection;
+
 		if (selection.length === 0) {
 			figma.notify("Please select at least one layer to generate XML.", {
 				error: true,
 			});
 			figma.ui.postMessage({
-				type: "XML_ERROR",
+				type: "NODE_ERROR",
 				message: "No layers selected.",
 			});
 			return;
 		}
-		const formatter = new Formatter();
+
 		try {
 			// -- uncomment if needed --
 			// For logging the tree structure
@@ -39,6 +42,33 @@ export default function () {
 	});
 	on("COPY_TO_CLIPBOARD", () => {
 		figma.notify("XML copied to clipboard!");
+	});
+
+	on<GenerateTreeStructure>("GENERATE_TREE_STRUCTURE", () => {
+		figma.notify("Generating Tree Structure");
+		if (selection.length === 0) {
+			figma.notify("Please select at least one layer to generate XML.", {
+				error: true,
+			});
+			figma.ui.postMessage({
+				type: "NODE_ERROR",
+				message: "No layers selected.",
+			});
+			return;
+		}
+		try {
+			const treeStructure = formatter.buildTreeChart(selection[0]);
+			setTimeout(() => {
+				figma.ui.postMessage({
+					type: "GENERATE_TREE_STRUCTURE",
+					tree: treeStructure,
+				});
+			}, 1000);
+			figma.notify("Tree generated successfully!");
+		} catch (e: unknown) {
+			const message = e instanceof Error ? e.message : String(e);
+			figma.notify(`Error generating Tree: ${message}`, { error: true });
+		}
 	});
 	showUI(
 		{ height: 520, width: 800 },

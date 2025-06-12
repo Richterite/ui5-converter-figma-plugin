@@ -1,4 +1,4 @@
-import type { MapperValues } from "../types";
+import type { MapperValues, TreeChartNode } from "../types";
 import { BlockBuilder, type ModulesInitiator } from "./builder";
 import { figmaInstanceNameToUI5ControlMap } from "./mapper";
 export class Formatter {
@@ -333,5 +333,22 @@ export class Formatter {
 			return logString;
 		}
 		return "";
+	}
+
+	buildTreeChart(node: SceneNode): TreeChartNode {
+		const chartNode: TreeChartNode = {
+			name: node.name,
+		};
+
+		if ("children" in node && node.children.length > 0) {
+			chartNode.attributes = {
+				types: node.type,
+			};
+
+			chartNode.children = node.children.map((child) =>
+				this.buildTreeChart(child),
+			);
+		}
+		return chartNode;
 	}
 }
