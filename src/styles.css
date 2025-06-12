@@ -94,3 +94,11 @@
   background-color: #EAEFEF;
   color: #333446;
 }
+
+
+.tree-container {
+  width: 100%;
+  height: 100vh;
+  background-color : #FFFFFF;
+  border: 2px solid #ffffff
+}
