@@ -27,6 +27,7 @@ import CheckboxGroup from "../chekcbox";
 import ContainerComponent from "../containers";
 import LeftContainer from "../containers/left-container";
 import RightContainer from "../containers/right-container";
+import FieldSetContainer from "../field-set";
 import InputField from "../input-field";
 
 function copyToClipboard(text: string) {
@@ -220,8 +221,7 @@ export default function GeneratorLayer({
 					onValueChange={onCheckboxChangeHandler}
 				/>
 				<VerticalSpace space="small" />
-				<fieldset className={styles.fieldset}>
-					<legend className={styles.legend}>Configuration</legend>
+				<FieldSetContainer title="Configuration">
 					<InputField
 						labelName="Page Title"
 						placeholder="Enter Page Title"
@@ -234,7 +234,7 @@ export default function GeneratorLayer({
 						value={currentViewModules.controllerName ?? ""}
 						onChangeValue={controllerNameChangeHandler}
 					/>
-				</fieldset>
+				</FieldSetContainer>
 				<VerticalSpace space="medium" />
 				<Button
 					fullWidth
