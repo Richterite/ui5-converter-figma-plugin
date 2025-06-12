@@ -22,6 +22,11 @@ export interface CopyToClipboardHandler extends EventHandler {
 	handler: () => void;
 }
 
+export interface GenerateTreeStructure extends EventHandler {
+	name: "GENERATE_TREE_STRUCTURE";
+	handler: () => void;
+}
+
 export type SelectOptions = {
 	label: string;
 	value: string | number;
@@ -29,3 +34,11 @@ export type SelectOptions = {
 
 export type MapperKey = keyof typeof figmaInstanceNameToUI5ControlMap;
 export type MapperValues = (typeof figmaInstanceNameToUI5ControlMap)[MapperKey];
+
+export type TreeChartNode = {
+	name: string;
+	attributes?: {
+		types: string;
+	};
+	children?: TreeChartNode[];
+};
