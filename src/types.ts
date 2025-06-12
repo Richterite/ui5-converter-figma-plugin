@@ -38,7 +38,13 @@ export type MapperValues = (typeof figmaInstanceNameToUI5ControlMap)[MapperKey];
 export type TreeChartNode = {
 	name: string;
 	attributes?: {
-		types: string;
+		figmaNodeType?: string;
+		ui5Control?: string;
+		text?: string;
+		value?: string;
+		placeholder?: string;
+		icon?: string;
+		required?: string;
 	};
 	children?: TreeChartNode[];
 };
