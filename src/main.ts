@@ -1,14 +1,14 @@
 import { on, showUI } from "@create-figma-plugin/utilities";
 
-import type { GenerateTreeStructure, GenerateXMLHandler } from "./types";
+import type { ConvertFigmaHandler, GenerateTreeStructure } from "./types";
 import { Formatter } from "./utils/formatter";
 
 const formatter = new Formatter();
 const selection = figma.currentPage.selection;
 
 export default function () {
-	on<GenerateXMLHandler>("GENERATE_XML", (viewModules) => {
-		figma.notify("Generating XML...");
+	on<ConvertFigmaHandler>("CONVERT_FIGMA", (viewModules) => {
+		figma.notify("Generating...");
 
 		if (selection.length === 0) {
 			figma.notify("Please select at least one layer to generate XML.", {
@@ -27,10 +27,13 @@ export default function () {
 			// formatter.traverseLogger(selection[0]);
 
 			const bodyXML = formatter.generateBodyXML(selection);
+			const tree = formatter.generateTreeChart(selection);
+			// const {} = formatter.traverse
 			setTimeout(() => {
 				figma.ui.postMessage({
-					type: "XML_RESULT",
+					type: "CONVERT_RESULT",
 					bodyXML: bodyXML,
+					treeData: tree,
 					viewModules: viewModules,
 				});
 			}, 1000);
