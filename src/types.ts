@@ -7,14 +7,9 @@ export interface ResizeWindowHandler extends EventHandler {
 	handler: (windowSize: { width: number; height: number }) => void;
 }
 
-export interface GenerateXMLHandler extends EventHandler {
-	name: "GENERATE_XML";
+export interface ConvertFigmaHandler extends EventHandler {
+	name: "CONVERT_FIGMA";
 	handler: (viewModules: ModulesInitiator) => void;
-}
-
-export interface GenerateXMLResult extends EventHandler {
-	name: "XML_RESULT";
-	handler: (msg: { xml: string }) => void;
 }
 
 export interface CopyToClipboardHandler extends EventHandler {
