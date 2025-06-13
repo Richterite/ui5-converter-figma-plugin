@@ -9,87 +9,117 @@ export class Formatter {
 
 	public generateBodyXML(nodes: readonly SceneNode[]) {
 		return nodes
-			.map((node) => this.traverseNode(node))
+			.map((node) => this.traverseNode(node).xmlString)
 			.filter((xmlString) => xmlString && xmlString.trim() !== "")
 			.join("\n");
 	}
 
-	private traverseNode(node: SceneNode): string {
+	public generateTreeChart(nodes: readonly SceneNode[]): TreeChartNode {
+		if (nodes.length > 1) {
+			return {
+				name: "Root",
+				attributes: {
+					figmaNodeType: "ROOT_WRAPPER",
+				},
+				children: nodes
+					.map((node) => this.traverseNode(node).chartNode)
+					.filter(Boolean) as TreeChartNode[],
+			};
+		}
+
+		const result = this.traverseNode(nodes[0]);
+		if (!result.chartNode) {
+			throw new Error("Root node chartNode is null or undefined.");
+		}
+		return result.chartNode;
+	}
+
+	private traverseNode(node: SceneNode): {
+		xmlString: string;
+		chartNode: TreeChartNode | null;
+	} {
+		const chartNode: TreeChartNode = {
+			name: node.name,
+			attributes: {
+				figmaNodeType: node.type,
+			},
+		};
+
+		let xmlString = "";
+
 		if (node.type === "INSTANCE") {
 			const instanceNode = node as InstanceNode;
 			const instanceName = instanceNode.name;
-			const hasChild =
-				"children" in instanceNode &&
-				instanceNode.children &&
-				instanceNode.children.length > 0;
-
 			const ui5ControlType = this.getUi5ControlType(instanceName);
 
+			const attributesObject = this.extractAttributes(
+				instanceNode,
+				ui5ControlType,
+			);
+			if (!chartNode.attributes) {
+				chartNode.attributes = {};
+			}
+			if (ui5ControlType) {
+				chartNode.attributes.ui5Control = ui5ControlType;
+			}
+			Object.assign(chartNode.attributes, attributesObject);
+
+			const childResults = (instanceNode.children || []).map((child) =>
+				this.traverseNode(child),
+			);
+
+			const childXML = childResults
+				.map((r) => r.xmlString)
+				.filter((str) => str && str.trim() !== "")
+				.join("\n");
+
+			chartNode.children = childResults
+				.map((r) => r.chartNode)
+				.filter(Boolean) as TreeChartNode[];
+
 			const tags = this.builder.buildBlock(instanceName);
-			const attributes = this.extractAttributes(instanceNode, ui5ControlType);
+			if (tags.length > 0) {
+				const attributeString = Object.entries(attributesObject)
+					.map(([key, value]) => `${key}="${this.escapeXml(value)}"`)
+					.join(" ");
 
-			let childXML = "";
+				const finalAttributeString = attributeString
+					? ` ${attributeString}`
+					: "";
 
-			if (hasChild) {
-				childXML = instanceNode.children
-					.map((child) => this.traverseNode(child))
-					.filter((xmlString) => xmlString && xmlString.trim() !== "")
-					.join("\n");
-			}
-			if (tags.length === 0) {
-				if (childXML.trim()) {
-					console.warn(
-						`Node "${node.name}" (${node.type}) tidak ditemukan di mapper, menggunakan VBox sebagai fallback.`,
+				if (tags.length === 1) {
+					xmlString = tags[0].replace(/\s*\/>$/, `${finalAttributeString} />`);
+				} else if (tags.length === 2) {
+					const openingTagWithAttr = tags[0].replace(
+						/>$/,
+						`${finalAttributeString}>`,
 					);
-					return `\n${childXML}\n`;
+					const contentSeparator = childXML.trim() ? "\n" : "";
+					xmlString = `${openingTagWithAttr}${contentSeparator}${childXML}${contentSeparator}${tags[1]}`;
 				}
-
-				return "";
+			} else if (childXML.trim()) {
+				xmlString = `\n${childXML}\n`;
 			}
-
-			const attributeString = attributes ? ` ${attributes}` : "";
-
-			if (tags.length === 1) {
-				if (hasChild && childXML.trim()) {
-					console.warn(
-						`Node "${node.name}" dihasilkan sebagai self-closing (${tags[0]}) oleh BlockBuilder tetapi memiliki anak Figma. Anak-anak diabaikan.`,
-					);
-				}
-				return tags[0].replace(/\s*\/>$/, `${attributeString} />`);
-			}
-
-			if (tags.length === 2) {
-				const openingTagsWithAttr = tags[0].replace(
-					/>$/,
-					`${attributeString}>`,
-				);
-				const contentSeparator = childXML.trim() ? "\n" : "";
-				return `${openingTagsWithAttr}${contentSeparator}${childXML}${contentSeparator}${tags[1]}`;
-			}
-
-			return "";
-		}
-
-		if (
-			(node.type === "FRAME" ||
-				node.type === "GROUP" ||
-				node.type === "SECTION") &&
+		} else if (
 			"children" in node &&
 			node.children &&
 			node.children.length > 0
 		) {
-			return node.children
-				.map((child) => this.traverseNode(child))
-				.filter((xmlString) => xmlString && xmlString.trim() !== "")
+			const childResults = node.children.map((child) =>
+				this.traverseNode(child),
+			);
+
+			xmlString = childResults
+				.map((r) => r.xmlString)
+				.filter((str) => str && str.trim() !== "")
 				.join("\n");
+
+			chartNode.children = childResults
+				.map((r) => r.chartNode)
+				.filter(Boolean) as TreeChartNode[];
 		}
 
-		// if (node.type === "TEXT") {
-		// 	const textContent = this.escapeXml(node.characters);
-		// 	return textContent.trim() ? `<Text text="${textContent}" />` : "";
-		// }
-
-		return "";
+		return { xmlString, chartNode };
 	}
 
 	private getUi5ControlType(instanceName: string): MapperValues {
@@ -108,13 +138,12 @@ export class Formatter {
 	private extractAttributes(
 		instanceNode: SceneNode,
 		ui5ControlType?: MapperValues,
-	) {
-		const attributes: string[] = [];
+	): Record<string, string> {
+		const attributes: Record<string, string> = {};
 		const addAttribute = (name: string, value?: string | null) => {
 			if (value?.trim()) {
-				const escapedValue = this.escapeXml(value.trim());
-				if (!attributes.some((attr) => attr.startsWith(`${name}=`))) {
-					attributes.push(`${name}="${escapedValue}"`);
+				if (!attributes[name]) {
+					attributes[name] = value.trim();
 				}
 			}
 		};
@@ -155,12 +184,11 @@ export class Formatter {
 			if (
 				ui5ControlType.endsWith(".Button") ||
 				ui5ControlType.endsWith(".Link") ||
-				ui5ControlType.endsWith(".Label") ||
 				ui5ControlType.endsWith(".Title")
 			) {
 				if (hasChild) {
 					const textChild = instanceNode.children.find(
-						(c) => c.type === "TEXT",
+						(c): c is TextNode => c.type === "TEXT",
 					);
 					if (textChild?.characters) {
 						addAttribute("text", textChild.characters);
@@ -178,7 +206,6 @@ export class Formatter {
 				}
 			}
 
-			// Input/TextArea
 			if (
 				ui5ControlType.endsWith(".Input") ||
 				ui5ControlType.endsWith(".TextArea")
@@ -187,12 +214,10 @@ export class Formatter {
 				if (hasChild) {
 					for (const child of instanceNode.children) {
 						if (child.type === "TEXT" && child.characters) {
-							const lowerName = child.name.toLowerCase();
-							const textChars = child.characters;
-							if (lowerName.includes("placeholder")) {
-								addAttribute("placeholder", textChars);
+							if (child.name.toLowerCase().includes("placeholder")) {
+								addAttribute("placeholder", child.characters);
 							} else {
-								addAttribute("value", textChars);
+								addAttribute("value", child.characters);
 							}
 						} else if (
 							child.type === "FRAME" &&
@@ -201,12 +226,10 @@ export class Formatter {
 						) {
 							for (const grandChild of child.children) {
 								if (grandChild.type === "TEXT" && grandChild.characters) {
-									const grandChildLower = grandChild.name.toLowerCase();
-									const textChars = grandChild.characters;
-									if (grandChildLower.includes("placeholder")) {
-										addAttribute("placeholder", textChars);
+									if (grandChild.name.toLowerCase().includes("placeholder")) {
+										addAttribute("placeholder", grandChild.characters);
 									} else {
-										addAttribute("value", textChars);
+										addAttribute("value", grandChild.characters);
 									}
 								}
 							}
@@ -226,7 +249,6 @@ export class Formatter {
 					) {
 						if (child.characters) iconNamedFound = child.characters;
 					}
-
 					if (iconNamedFound) {
 						if (!iconNamedFound.includes("://") && iconNamedFound.trim()) {
 							iconNamedFound = `sap-icon://${iconNamedFound.toLowerCase().replace(/\s+/g, "-").replace(/[()]/g, "")}`;
@@ -238,7 +260,7 @@ export class Formatter {
 			}
 		}
 
-		return attributes.join(" ");
+		return attributes;
 	}
 
 	private escapeXml(unsafe: string): string {
