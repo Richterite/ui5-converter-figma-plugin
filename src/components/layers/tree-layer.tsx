@@ -1,16 +1,24 @@
-import { Button, Text, VerticalSpace } from "@create-figma-plugin/ui";
-import { emit } from "@create-figma-plugin/utilities";
+import { Text, VerticalSpace } from "@create-figma-plugin/ui";
 // biome-ignore lint/correctness/noUnusedImports: for react component
 import { h } from "preact";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import Tree from "react-d3-tree";
 import styles from "../../styles.css";
-import type { GenerateTreeStructure, TreeChartNode } from "../../types";
+import type { TreeChartNode } from "../../types";
 import ContainerComponent from "../containers";
 import LeftContainer from "../containers/left-container";
 import RightContainer from "../containers/right-container";
 import FieldSetContainer from "../field-set";
 import RadioGroup from "../radio-group";
+
+interface TreeLayerProps {
+	data: TreeChartNode | null;
+}
+
+type TreeSettings = {
+	treeOrientation: (typeof orientationsOptions)[number]["value"];
+	pathLine: (typeof pathLineOptions)[number]["value"];
+};
 
 const orientationsOptions = [
 	{
@@ -42,12 +50,7 @@ const pathLineOptions = [
 	},
 ] as const;
 
-type TreeSettings = {
-	treeOrientation: (typeof orientationsOptions)[number]["value"];
-	pathLine: (typeof pathLineOptions)[number]["value"];
-};
-export default function TreeLayer() {
-	const [treeData, setTreeData] = useState<TreeChartNode>();
+export default function TreeLayer({ data }: TreeLayerProps) {
 	const [translate, setTranslate] = useState({ x: 0, y: 0 });
 	const [treeSettings, setTreeSettings] = useState<TreeSettings>({
 		treeOrientation: orientationsOptions[0].value,
@@ -55,9 +58,6 @@ export default function TreeLayer() {
 	});
 
 	const treeContainerRef = useRef<HTMLDivElement>(null);
-	const onGenerateTreeHandler = useCallback(() => {
-		emit<GenerateTreeStructure>("GENERATE_TREE_STRUCTURE");
-	}, []);
 
 	const onTreeOrientationChange = useCallback(
 		(value: TreeSettings["treeOrientation"]) => {
@@ -78,20 +78,14 @@ export default function TreeLayer() {
 		[],
 	);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: for retriggering translate
 	useEffect(() => {
-		window.onmessage = (e) => {
-			const { pluginMessage } = e.data;
-			if (pluginMessage.type === "GENERATE_TREE_STRUCTURE") {
-				setTreeData(pluginMessage.tree as TreeChartNode);
-			}
-		};
-
 		if (treeContainerRef.current) {
 			const { width, height } =
 				treeContainerRef.current.getBoundingClientRect();
 			setTranslate({ x: width / 2, y: height / 5 });
 		}
-	}, []);
+	}, [treeSettings]);
 	return (
 		<ContainerComponent>
 			<LeftContainer>
@@ -114,15 +108,12 @@ export default function TreeLayer() {
 					</FieldSetContainer>
 				</FieldSetContainer>
 				<VerticalSpace space="medium" />
-				<Button fullWidth onClick={onGenerateTreeHandler}>
-					Add Tree
-				</Button>
 			</LeftContainer>
 			<RightContainer>
 				<div className={styles["tree-container"]} ref={treeContainerRef}>
-					{treeData && (
+					{data && (
 						<Tree
-							data={treeData}
+							data={data}
 							translate={translate}
 							separation={{ siblings: 0.5, nonSiblings: 1 }}
 							orientation={treeSettings.treeOrientation}

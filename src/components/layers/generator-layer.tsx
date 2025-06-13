@@ -4,13 +4,7 @@ import "prismjs/components/prism-xml-doc.js";
 
 import { Button, Text, VerticalSpace } from "@create-figma-plugin/ui";
 import { emit } from "@create-figma-plugin/utilities";
-import {
-	useCallback,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "preact/hooks";
+import { useCallback, useState } from "preact/hooks";
 import { highlight, languages } from "prismjs";
 import "prismjs/components/prism-xml-doc.js";
 import Editor from "react-simple-code-editor";
@@ -18,11 +12,9 @@ import Editor from "react-simple-code-editor";
 // biome-ignore lint/correctness/noUnusedImports: use to maintain preact component
 import { h } from "preact";
 import styles from "../../styles.css";
-import type { CopyToClipboardHandler, GenerateXMLHandler } from "../../types";
-import { BlockBuilder, type ModulesInitiator } from "../../utils/builder";
-import { Formatter } from "../../utils/formatter";
-import { isSameObject } from "../../utils/helper";
-import { figmaInstanceNameToUI5ControlMap } from "../../utils/mapper";
+import type { CopyToClipboardHandler } from "../../types";
+import type { ModulesInitiator } from "../../utils/builder";
+import type { availableModules } from "../../utils/constant";
 import CheckboxGroup from "../chekcbox";
 import ContainerComponent from "../containers";
 import LeftContainer from "../containers/left-container";
@@ -57,137 +49,77 @@ function copyToClipboard(text: string) {
 	emit<CopyToClipboardHandler>("COPY_TO_CLIPBOARD");
 }
 
-const availableModules = {
-	xmlns: "sap.m",
-	"xmlns:core": "sap.ui.core",
-	"xmlns:l": "sap.ui.layout",
-	"xmlns:f": "sap.f", // SAP Fiori Flexible Column Layout, Cards, etc.
-	"xmlns:form": "sap.ui.layout.form", // for SimpleForm, FormContainer
-	"xmlns:unified": "sap.ui.unified", // for FileUploader
-};
+interface GeneratorLayerProps {
+	placeholder: string;
+	xmlToDisplay: string;
+	viewModule: ModulesInitiator;
+	availableModules: typeof availableModules;
+	onViewModuleChange: (newModule: ModulesInitiator) => void;
+}
 
-const initialViewModules: ModulesInitiator = {
-	controllerName: "sap.ui.demo.todo.controller.App",
-	displayBlock: "true",
-	pageTitle: "My Application",
-	xmlns: "sap.m",
-	"xmlns:mvc": "sap.ui.core.mvc",
-};
+type AvailableModuleKeys = keyof typeof availableModules;
 
 export default function GeneratorLayer({
 	placeholder,
-}: { placeholder: string }) {
-	const [displayXml, setDisplayXml] = useState<string>("");
-	const [generatedBodyXml, setGenereatedBodyXml] = useState<string>("");
-	const [currentViewModules, setCurrentViewModules] =
-		useState<ModulesInitiator>(initialViewModules);
-
-	const [isLoading, setIsloading] = useState<boolean>(false);
-
-	const builderRef = useRef(new BlockBuilder(figmaInstanceNameToUI5ControlMap));
-	const formatterRef = useRef(new Formatter());
-
-	const needResetMemo = useMemo(
-		() =>
-			!isSameObject(currentViewModules, initialViewModules) ||
-			generatedBodyXml.trim() !== "",
-		[currentViewModules, generatedBodyXml],
-	);
-
-	const buildFormatFullXml = useCallback(
-		(body: string, viewModules: ModulesInitiator) => {
-			const { header, footer, pageRequiresContentTag } =
-				builderRef.current.blockInitiator(viewModules);
-			let content = body;
-
-			if (pageRequiresContentTag) {
-				if (body.trim()) {
-					const indentedBody = body
-						.split("\n")
-						.map((line) => `    ${line}`)
-						.join("\n");
-					content = `    <content>\n${indentedBody}\n    </content>`;
-				} else {
-					content = "    <content></content>";
-				}
-			}
-
-			return formatterRef.current.formatXml(`${header}\n${content}\n${footer}`);
-		},
-		[],
-	);
-
-	useEffect(() => {
-		const bodyForDisplay = generatedBodyXml || "    ";
-		const fullXml = buildFormatFullXml(bodyForDisplay, currentViewModules);
-		setDisplayXml(fullXml);
-	}, [buildFormatFullXml, currentViewModules, generatedBodyXml]);
-
-	const onResetButtonClick = useCallback(() => {
-		setCurrentViewModules(initialViewModules);
-		setGenereatedBodyXml("");
-	}, []);
-
+	xmlToDisplay,
+	viewModule,
+	availableModules,
+	onViewModuleChange,
+}: GeneratorLayerProps) {
+	const [currentViewModule, setCurrentViewModules] = useState(viewModule);
 	const onCopyButtonClick = useCallback(() => {
-		if (displayXml && displayXml.length > 0) {
-			copyToClipboard(displayXml);
+		if (xmlToDisplay.length > 0) {
+			copyToClipboard(xmlToDisplay);
 		} else {
 			console.warn("Tidak ada XML untuk disalin.");
 		}
-	}, [displayXml]);
-
-	const onHandleGenerateClick = useCallback(() => {
-		setIsloading(true);
-		emit<GenerateXMLHandler>("GENERATE_XML", currentViewModules);
-	}, [currentViewModules]);
+	}, [xmlToDisplay]);
 
 	const onCheckboxChangeHandler = useCallback(
 		(libraryPath: string, isChecked: boolean) => {
 			setCurrentViewModules((prev) => {
 				const newModules: ModulesInitiator = { ...prev };
 
-				const xmlnsKey = (
-					Object.keys(availableModules) as Array<keyof typeof availableModules>
-				).find((key) => availableModules[key] === libraryPath);
+				const xmlnsKey = Object.keys(availableModules).find(
+					(key) => availableModules[key as AvailableModuleKeys] === libraryPath,
+				);
 
 				if (xmlnsKey) {
 					if (isChecked) {
-						newModules[xmlnsKey] = libraryPath;
+						newModules[xmlnsKey as keyof ModulesInitiator] = libraryPath;
 					} else {
-						delete newModules[xmlnsKey];
+						delete newModules[xmlnsKey as keyof ModulesInitiator];
 					}
 				}
-
 				return newModules;
 			});
+
+			onViewModuleChange(currentViewModule);
 		},
-		[],
+		[availableModules, currentViewModule, onViewModuleChange],
 	);
 
-	const titleChangeHandler = useCallback((newTitle: string) => {
-		setCurrentViewModules((prev) => ({
-			...prev,
-			pageTitle: newTitle,
-		}));
-	}, []);
+	const titleChangeHandler = useCallback(
+		(newTitle: string) => {
+			setCurrentViewModules((prev) => ({
+				...prev,
+				pageTitle: newTitle,
+			}));
+			onViewModuleChange(currentViewModule);
+		},
+		[onViewModuleChange, currentViewModule],
+	);
 
-	const controllerNameChangeHandler = useCallback((newController: string) => {
-		setCurrentViewModules((prev) => ({
-			...prev,
-			controllerName: newController,
-		}));
-	}, []);
-
-	useEffect(() => {
-		window.onmessage = (e) => {
-			setIsloading(false);
-			const { pluginMessage } = e.data;
-			if (pluginMessage.type === "XML_RESULT") {
-				setGenereatedBodyXml(pluginMessage.bodyXML);
-				setCurrentViewModules(pluginMessage.viewModules);
-			}
-		};
-	}, []);
+	const controllerNameChangeHandler = useCallback(
+		(newController: string) => {
+			setCurrentViewModules((prev) => ({
+				...prev,
+				controllerName: newController,
+			}));
+			onViewModuleChange(currentViewModule);
+		},
+		[currentViewModule, onViewModuleChange],
+	);
 
 	const checkboxOptions = Object.entries(availableModules)
 		.filter(
@@ -199,7 +131,7 @@ export default function GeneratorLayer({
 				: value,
 			value: value,
 		}));
-	const checkedLibraries = Object.entries(currentViewModules)
+	const checkedLibraries = Object.entries(currentViewModule)
 		.filter(
 			([key, value]) =>
 				key.startsWith("xmlns:") &&
@@ -225,39 +157,17 @@ export default function GeneratorLayer({
 					<InputField
 						labelName="Page Title"
 						placeholder="Enter Page Title"
-						value={currentViewModules.pageTitle ?? ""}
+						value={currentViewModule.pageTitle ?? ""}
 						onChangeValue={titleChangeHandler}
 					/>
 					<InputField
 						labelName="Controller Name"
 						placeholder="Enter Controller Name"
-						value={currentViewModules.controllerName ?? ""}
+						value={currentViewModule.controllerName ?? ""}
 						onChangeValue={controllerNameChangeHandler}
 					/>
 				</FieldSetContainer>
 				<VerticalSpace space="medium" />
-				<Button
-					fullWidth
-					onClick={onHandleGenerateClick}
-					style={{
-						marginTop: "16px",
-					}}
-					disabled={isLoading || needResetMemo}
-					loading={isLoading}
-				>
-					Generate XML
-				</Button>
-				<Button
-					fullWidth
-					onClick={onResetButtonClick}
-					style={{
-						marginTop: "16px",
-					}}
-					danger
-					disabled={!needResetMemo}
-				>
-					Reset
-				</Button>
 			</LeftContainer>
 			<RightContainer>
 				<Editor
@@ -271,11 +181,10 @@ export default function GeneratorLayer({
 					onValueChange={() => {}}
 					padding={10}
 					disabled
-					value={displayXml}
+					value={xmlToDisplay}
 					placeholder={placeholder}
 					className={styles.editor}
 				/>
-				<VerticalSpace space="small" />
 				<Button
 					fullWidth
 					onClick={onCopyButtonClick}
